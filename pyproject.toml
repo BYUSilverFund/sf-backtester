@@ -9,3 +9,6 @@ dependencies = [
     "pyyaml>=6.0.3",
     "sf-quant>=0.1.18",
 ]
+
+[project.scripts]
+sf_backtester = "sf_backtester.cli:main"
