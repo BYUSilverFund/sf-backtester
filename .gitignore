@@ -1,3 +1,10 @@
+/data.py
+/test.py
+/config.yml
+/logs
+/weights
+/*.parquet
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
