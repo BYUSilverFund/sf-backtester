@@ -100,16 +100,15 @@ slurm:
 
 ### Dynamic backtest (YAML)
 
-Uses `initial_gamma` as a starting point and adjusts it each period to target a specific active risk level.
-
-Important! If you use the ZeroBeta and ZeroInvestment constraints set active_weights as true. This will allow
-for the dynamic gamma computation. If you use UnitBeta, FullInvestment, and LongOnly set active_weights as false.
+The dynamic backtest solves in active weight space and calibrates each date to the requested annualized
+tracking error. It requires benchmark weights and, when `enforce_zero_beta` is true, predicted betas in the
+input data. Long-only bounds and zero-sum active weights are enforced by the optimizer.
 
 ```yaml
 signal_name: momentum
-initial_gamma: 50
 target_active_risk: 0.05
 active_weights: true
+enforce_zero_beta: true
 data_path: /path/to/alphas.parquet
 project_root: /path/to/project
 byu_email: you@byu.edu

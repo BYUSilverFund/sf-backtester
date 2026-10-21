@@ -71,11 +71,6 @@ def run(
     help="Override the data path from config.",
 )
 @click.option(
-    "--initial_gamma",
-    type=float,
-    help="Override initial_gamma from config.",
-)
-@click.option(
     "--target_active_risk",
     type=float,
     help="Override target_active_risk from config.",
@@ -85,13 +80,18 @@ def run(
     type=bool,
     help="Override active_weights flag from config.",
 )
+@click.option(
+    "--enforce-zero-beta/--allow-nonzero-beta",
+    default=None,
+    help="Whether to enforce zero active beta.",
+)
 def run_dynamic(
     config_path: str,
     dry_run: bool,
     data_path: str | None,
-    initial_gamma: float | None,
     target_active_risk: float | None,
     active_weights: bool | None,
+    enforce_zero_beta: bool | None,
 ) -> None:
     """Run a dynamic parallel backtest on SLURM from a YAML config file.
 
@@ -100,16 +100,13 @@ def run_dynamic(
     Example:
         sf-backtester run-dynamic config.yml
         sf-backtester run-dynamic config.yml --dry-run
-        sf-backtester run-dynamic config.yml --initial_gamma 0.5
+        sf-backtester run-dynamic config.yml --enforce-zero-beta
     """
     runner = BacktestDynamicRunner.from_yaml(config_path)
 
     # Apply overrides
     if data_path is not None:
         runner.config.data_path = data_path
-
-    if initial_gamma is not None:
-        runner.config.initial_gamma = initial_gamma
 
     if target_active_risk is not None:
         runner.config.target_active_risk = target_active_risk
@@ -121,5 +118,8 @@ def run_dynamic(
 
     if active_weights is not None:
         runner.config.active_weights = active_weights
+
+    if enforce_zero_beta is not None:
+        runner.config.enforce_zero_beta = enforce_zero_beta
 
     runner.submit(dry_run=dry_run)

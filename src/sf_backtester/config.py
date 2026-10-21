@@ -87,7 +87,6 @@ class BacktestDynamicConfig:
     # Required fields
     signal_name: str
     data_path: str
-    initial_gamma: float
     target_active_risk: float
     active_weights: bool
 
@@ -98,6 +97,7 @@ class BacktestDynamicConfig:
     # Optional with defaults
     constraints: list[str]
     slurm: SlurmConfig
+    enforce_zero_beta: bool = True
 
     # Output configuration
     output_dir: str | None = None
@@ -126,9 +126,9 @@ class BacktestDynamicConfig:
         data = {
             "signal_name": self.signal_name,
             "data_path": self.data_path,
-            "initial_gamma": self.initial_gamma,
             "target_active_risk": self.target_active_risk,
             "active_weights": self.active_weights,
+            "enforce_zero_beta": self.enforce_zero_beta,
             "project_root": self.project_root,
             "byu_email": self.byu_email,
             "constraints": self.constraints,

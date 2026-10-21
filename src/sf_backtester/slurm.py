@@ -83,6 +83,7 @@ def generate_sbatch_script_dynamic(config: BacktestDynamicConfig, years: list[in
     constraints_str = " ".join(config.constraints)
     worker_script = get_dynamic_worker_script_path()
     active_weights_str = str(config.active_weights).lower()
+    enforce_zero_beta_str = str(config.enforce_zero_beta).lower()
 
     script = f"""#!/bin/bash
 #SBATCH --job-name={config.signal_name}_dynamic_backtest
@@ -99,9 +100,9 @@ export RAY_ACCEL_ENV_VAR_OVERRIDE_ON_ZERO=0
 
 DATA_PATH="{config.data_path}"
 OUTPUT_DIR="{config.output_dir}"
-INITIAL_GAMMA="{config.initial_gamma}"
 TARGET_ACTIVE_RISK="{config.target_active_risk}"
 ACTIVE_WEIGHTS="{active_weights_str}"
+ENFORCE_ZERO_BETA="{enforce_zero_beta_str}"
 N_CPUS="{config.slurm.n_cpus}"
 CONSTRAINTS="{constraints_str}"
 
@@ -121,9 +122,9 @@ source {config.project_root}/.venv/bin/activate
 echo "Running year=$year"
 srun python {worker_script} \\
     --data_path "$DATA_PATH" \\
-    --initial_gamma "$INITIAL_GAMMA" \\
     --target_active_risk "$TARGET_ACTIVE_RISK" \\
     --active_weights "$ACTIVE_WEIGHTS" \\
+    --enforce_zero_beta "$ENFORCE_ZERO_BETA" \\
     --year "$year" \\
     --output_dir "$OUTPUT_DIR" \\
     --n_cpus "$N_CPUS" \\

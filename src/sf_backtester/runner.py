@@ -154,10 +154,8 @@ class BacktestDynamicRunner:
         os.makedirs(self.config.output_dir, exist_ok=True)
         os.makedirs(self.config.logs_dir, exist_ok=True)
 
-        temp_dir = Path(self.config.project_root) / "temp"
-        temp_dir.mkdir(parents=True, exist_ok=True)
-
         if data is not None:
+            Path(self.config.data_path).parent.mkdir(parents=True, exist_ok=True)
             data.write_parquet(self.config.data_path)
             self._data = data
 
@@ -173,9 +171,9 @@ class BacktestDynamicRunner:
 
         print(f"Preparing dynamic backtest for {len(years)} years: {years[0]}-{years[-1]}")
         print(f"Signal: {self.config.signal_name}")
-        print(f"Initial gamma: {self.config.initial_gamma}")
         print(f"Target active risk: {self.config.target_active_risk}")
         print(f"Active weights: {self.config.active_weights}")
+        print(f"Enforce zero active beta: {self.config.enforce_zero_beta}")
         print(f"Constraints: {self.config.constraints}")
         print(f"Output directory: {self.config.output_dir}")
 
