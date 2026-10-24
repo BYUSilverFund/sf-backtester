@@ -2,11 +2,13 @@
 
 import importlib.resources
 import os
+import shlex
 import subprocess
 import tempfile
 from pathlib import Path
 
 from sf_backtester.config import BacktestConfig, BacktestDynamicConfig
+from sf_backtester.constraints import serialize_constraints
 
 
 def get_worker_script_path() -> Path:
@@ -22,7 +24,7 @@ def generate_sbatch_script(config: BacktestConfig, years: list[int]) -> str:
     """Generate the SBATCH script content."""
     num_years = len(years)
     years_str = " ".join(str(y) for y in years)
-    constraints_str = " ".join(config.constraints)
+    constraints_json = shlex.quote(serialize_constraints(config.constraints))
     worker_script = get_worker_script_path()
 
     script = f"""#!/bin/bash
@@ -38,11 +40,11 @@ def generate_sbatch_script(config: BacktestConfig, years: list[int]) -> str:
 
 export RAY_ACCEL_ENV_VAR_OVERRIDE_ON_ZERO=0
 
-DATA_PATH="{config.data_path}"
-OUTPUT_DIR="{config.output_dir}"
+DATA_PATH={shlex.quote(config.data_path)}
+OUTPUT_DIR={shlex.quote(str(config.output_dir))}
 GAMMA="{config.gamma}"
 N_CPUS="{config.slurm.n_cpus}"
-CONSTRAINTS="{constraints_str}"
+CONSTRAINTS_JSON={constraints_json}
 
 # Years to process
 years=({years_str})
@@ -56,15 +58,15 @@ fi
 
 year=${{years[$SLURM_ARRAY_TASK_ID]}}
 
-source {config.project_root}/.venv/bin/activate
+source {shlex.quote(str(Path(config.project_root) / '.venv/bin/activate'))}
 echo "Running year=$year"
-srun python {worker_script} \\
+srun python {shlex.quote(str(worker_script))} \\
     --data_path "$DATA_PATH" \\
     --gamma "$GAMMA" \\
     --year "$year" \\
     --output_dir "$OUTPUT_DIR" \\
     --n_cpus "$N_CPUS" \\
-    --constraints $CONSTRAINTS
+    --constraints-json "$CONSTRAINTS_JSON"
 """
     return script
 
@@ -80,10 +82,9 @@ def generate_sbatch_script_dynamic(config: BacktestDynamicConfig, years: list[in
     """Generate the SBATCH script content for a dynamic backtest."""
     num_years = len(years)
     years_str = " ".join(str(y) for y in years)
-    constraints_str = " ".join(config.constraints)
+    constraints_json = shlex.quote(serialize_constraints(config.constraints))
     worker_script = get_dynamic_worker_script_path()
     active_weights_str = str(config.active_weights).lower()
-    enforce_zero_beta_str = str(config.enforce_zero_beta).lower()
 
     script = f"""#!/bin/bash
 #SBATCH --job-name={config.signal_name}_dynamic_backtest
@@ -98,13 +99,12 @@ def generate_sbatch_script_dynamic(config: BacktestDynamicConfig, years: list[in
 
 export RAY_ACCEL_ENV_VAR_OVERRIDE_ON_ZERO=0
 
-DATA_PATH="{config.data_path}"
-OUTPUT_DIR="{config.output_dir}"
+DATA_PATH={shlex.quote(config.data_path)}
+OUTPUT_DIR={shlex.quote(str(config.output_dir))}
 TARGET_ACTIVE_RISK="{config.target_active_risk}"
 ACTIVE_WEIGHTS="{active_weights_str}"
-ENFORCE_ZERO_BETA="{enforce_zero_beta_str}"
 N_CPUS="{config.slurm.n_cpus}"
-CONSTRAINTS="{constraints_str}"
+CONSTRAINTS_JSON={constraints_json}
 
 # Years to process
 years=({years_str})
@@ -118,17 +118,16 @@ fi
 
 year=${{years[$SLURM_ARRAY_TASK_ID]}}
 
-source {config.project_root}/.venv/bin/activate
+source {shlex.quote(str(Path(config.project_root) / '.venv/bin/activate'))}
 echo "Running year=$year"
-srun python {worker_script} \\
+srun python {shlex.quote(str(worker_script))} \\
     --data_path "$DATA_PATH" \\
     --target_active_risk "$TARGET_ACTIVE_RISK" \\
     --active_weights "$ACTIVE_WEIGHTS" \\
-    --enforce_zero_beta "$ENFORCE_ZERO_BETA" \\
     --year "$year" \\
     --output_dir "$OUTPUT_DIR" \\
     --n_cpus "$N_CPUS" \\
-    --constraints $CONSTRAINTS
+    --constraints-json "$CONSTRAINTS_JSON"
 """
     return script
 

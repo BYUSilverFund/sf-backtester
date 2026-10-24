@@ -80,18 +80,12 @@ def run(
     type=bool,
     help="Override active_weights flag from config.",
 )
-@click.option(
-    "--enforce-zero-beta/--allow-nonzero-beta",
-    default=None,
-    help="Whether to enforce zero active beta.",
-)
 def run_dynamic(
     config_path: str,
     dry_run: bool,
     data_path: str | None,
     target_active_risk: float | None,
     active_weights: bool | None,
-    enforce_zero_beta: bool | None,
 ) -> None:
     """Run a dynamic parallel backtest on SLURM from a YAML config file.
 
@@ -100,7 +94,7 @@ def run_dynamic(
     Example:
         sf-backtester run-dynamic config.yml
         sf-backtester run-dynamic config.yml --dry-run
-        sf-backtester run-dynamic config.yml --enforce-zero-beta
+        sf-backtester run-dynamic config.yml --target_active_risk 0.05
     """
     runner = BacktestDynamicRunner.from_yaml(config_path)
 
@@ -118,8 +112,5 @@ def run_dynamic(
 
     if active_weights is not None:
         runner.config.active_weights = active_weights
-
-    if enforce_zero_beta is not None:
-        runner.config.enforce_zero_beta = enforce_zero_beta
 
     runner.submit(dry_run=dry_run)

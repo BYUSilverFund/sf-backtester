@@ -9,10 +9,14 @@ gamma: 0.5
 project_root: /path/to/project
 byu_email: your.email@byu.edu
 
-# Optimization constraints
+# Optimization constraints: names and parameterized mappings may be mixed.
+# Empty [] retains the mean-variance objective without mandate constraints.
 constraints:
   - ZeroBeta
   - ZeroInvestment
+  - name: GrossLeverage
+    max_leverage: 1.0
+# A name-only GrossLeverage also defaults to 1.0. Limits must be finite and positive.
 
 # SLURM configuration (all optional with defaults)
 slurm:

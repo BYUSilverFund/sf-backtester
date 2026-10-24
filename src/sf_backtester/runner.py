@@ -6,6 +6,7 @@ from pathlib import Path
 import polars as pl
 
 from sf_backtester.config import BacktestConfig, BacktestDynamicConfig
+from sf_backtester.constraints import get_constraints
 from sf_backtester.slurm import generate_sbatch_script, generate_sbatch_script_dynamic, submit_job
 
 
@@ -97,6 +98,8 @@ class BacktestRunner:
             data: Optional DataFrame to backtest. If not provided, loads from config.data_path.
             dry_run: If True, print the script instead of submitting.
         """
+        # Revalidate mutable configuration before any preparation or submission.
+        get_constraints(self.config.constraints)
         # Prepare directories and optionally save data
         self.prepare(data)
 
@@ -164,6 +167,7 @@ class BacktestDynamicRunner:
         data: pl.DataFrame | None = None,
         dry_run: bool = False,
     ) -> None:
+        get_constraints(self.config.constraints)
         self.prepare(data)
 
         df = self.load_data(data)
@@ -173,7 +177,6 @@ class BacktestDynamicRunner:
         print(f"Signal: {self.config.signal_name}")
         print(f"Target active risk: {self.config.target_active_risk}")
         print(f"Active weights: {self.config.active_weights}")
-        print(f"Enforce zero active beta: {self.config.enforce_zero_beta}")
         print(f"Constraints: {self.config.constraints}")
         print(f"Output directory: {self.config.output_dir}")
 

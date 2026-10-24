@@ -8,9 +8,13 @@ import datetime as dt
 
 import polars as pl
 import sf_quant.backtester as sfb
-import sf_quant.optimizer as sfo
+from sf_backtester.constraints import (
+    ConstraintSpec,
+    add_constraint_arguments,
+    constraints_from_arguments,
+    get_constraints,
+)
 
-from sf_backtester.scripts.utils import get_constraints
 
 def run_backtest_by_year(
     df: pl.LazyFrame,
@@ -18,7 +22,7 @@ def run_backtest_by_year(
     year: int,
     output_dir: str,
     n_cpus: int,
-    constraints: list[str],
+    constraints: list[ConstraintSpec],
 ) -> None:
     """Run MVO backtest for a single year.
 
@@ -28,8 +32,9 @@ def run_backtest_by_year(
         year: Year to process.
         output_dir: Directory to write output.
         n_cpus: Number of CPUs for parallel execution.
-        constraints: List of constraint names.
+        constraints: Constraint names or named parameter mappings.
     """
+    constraint_objects = get_constraints(constraints)
     year_start = dt.date(year, 1, 1)
     year_end = dt.date(year, 12, 31)
 
@@ -39,8 +44,6 @@ def run_backtest_by_year(
     )
 
     print(f"Processing year {year}: {len(filtered)} rows")
-
-    constraint_objects = get_constraints(constraints)
 
     weights = sfb.backtest_parallel(
         data=filtered,
@@ -88,14 +91,10 @@ def main() -> None:
         required=True,
         help="Number of CPUs for parallel execution.",
     )
-    parser.add_argument(
-        "--constraints",
-        nargs="+",
-        required=True,
-        help="List of constraint names (e.g., ZeroBeta ZeroInvestment).",
-    )
+    add_constraint_arguments(parser)
 
     args = parser.parse_args()
+    constraints = constraints_from_arguments(args, parser)
 
     df = pl.scan_parquet(args.data_path)
 
@@ -105,7 +104,7 @@ def main() -> None:
         year=args.year,
         output_dir=args.output_dir,
         n_cpus=args.n_cpus,
-        constraints=args.constraints,
+        constraints=constraints,
     )
 
 

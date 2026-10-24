@@ -9,7 +9,12 @@ import datetime as dt
 import polars as pl
 import sf_quant.data as sfd
 import sf_quant.backtester as sfb
-from sf_backtester.scripts.utils import get_constraints
+from sf_backtester.constraints import (
+    ConstraintSpec,
+    add_constraint_arguments,
+    constraints_from_arguments,
+    get_constraints,
+)
 
 
 def run_backtest_by_year(
@@ -17,10 +22,9 @@ def run_backtest_by_year(
     year: int,
     output_dir: str,
     n_cpus: int,
-    constraints: list[str],
+    constraints: list[ConstraintSpec],
     active_weights: bool,
     target_active_risk: float,
-    enforce_zero_beta: bool,
 ) -> None:
     """Run MVO backtest for a single year.
 
@@ -29,11 +33,11 @@ def run_backtest_by_year(
         year: Year to process.
         output_dir: Directory to write output.
         n_cpus: Number of CPUs for parallel execution.
-        constraints: List of constraint names.
+        constraints: Constraint names or named parameter mappings.
         active_weights: Active weights flag.
         target_active_risk: Target active risk.
-        enforce_zero_beta: Whether to enforce zero active beta.
     """
+    constraint_objects = get_constraints(constraints)
     year_start = dt.date(year, 1, 1)
     year_end = dt.date(year, 12, 31)
 
@@ -58,15 +62,12 @@ def run_backtest_by_year(
 
     print(f"Processing year {year}: {len(filtered)} rows")
 
-    constraint_objects = get_constraints(constraints)
-
     weights = sfb.dynamic_backtest_parallel(
         data=filtered,
         constraints=constraint_objects,
         target_active_risk=target_active_risk,
         active_weights=active_weights,
         n_cpus=n_cpus,
-        enforce_zero_beta=enforce_zero_beta,
     )
 
     output_path = f"{output_dir}/{year}.parquet"
@@ -98,12 +99,6 @@ def main() -> None:
         help="Active weights flag (pass 'true' or 'false').",
     )
     parser.add_argument(
-        "--enforce_zero_beta",
-        type=lambda x: x.lower() == "true",
-        required=True,
-        help="Whether to enforce zero active beta (pass 'true' or 'false').",
-    )
-    parser.add_argument(
         "--year",
         type=int,
         required=True,
@@ -120,14 +115,10 @@ def main() -> None:
         required=True,
         help="Number of CPUs for parallel execution.",
     )
-    parser.add_argument(
-        "--constraints",
-        nargs="+",
-        required=True,
-        help="List of constraint names (e.g., ZeroBeta ZeroInvestment).",
-    )
+    add_constraint_arguments(parser)
 
     args = parser.parse_args()
+    constraints = constraints_from_arguments(args, parser)
 
     df = pl.scan_parquet(args.data_path)
 
@@ -136,10 +127,9 @@ def main() -> None:
         year=args.year,
         output_dir=args.output_dir,
         n_cpus=args.n_cpus,
-        constraints=args.constraints,
+        constraints=constraints,
         active_weights=args.active_weights,
         target_active_risk=args.target_active_risk,
-        enforce_zero_beta=args.enforce_zero_beta,
     )
 
 
