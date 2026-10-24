@@ -71,11 +71,6 @@ def run(
     help="Override the data path from config.",
 )
 @click.option(
-    "--initial_gamma",
-    type=float,
-    help="Override initial_gamma from config.",
-)
-@click.option(
     "--target_active_risk",
     type=float,
     help="Override target_active_risk from config.",
@@ -89,7 +84,6 @@ def run_dynamic(
     config_path: str,
     dry_run: bool,
     data_path: str | None,
-    initial_gamma: float | None,
     target_active_risk: float | None,
     active_weights: bool | None,
 ) -> None:
@@ -100,16 +94,13 @@ def run_dynamic(
     Example:
         sf-backtester run-dynamic config.yml
         sf-backtester run-dynamic config.yml --dry-run
-        sf-backtester run-dynamic config.yml --initial_gamma 0.5
+        sf-backtester run-dynamic config.yml --target_active_risk 0.05
     """
     runner = BacktestDynamicRunner.from_yaml(config_path)
 
     # Apply overrides
     if data_path is not None:
         runner.config.data_path = data_path
-
-    if initial_gamma is not None:
-        runner.config.initial_gamma = initial_gamma
 
     if target_active_risk is not None:
         runner.config.target_active_risk = target_active_risk

@@ -1,10 +1,17 @@
 """Configuration management for sf-backtester."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+import json
 from pathlib import Path
 from typing import Self
 
 import yaml
+
+from sf_backtester.constraints import (
+    ConstraintSpec,
+    get_constraints,
+    serialize_constraints,
+)
 
 
 @dataclass
@@ -32,7 +39,7 @@ class BacktestConfig:
     byu_email: str
 
     # Optional with defaults
-    constraints: list[str]
+    constraints: list[ConstraintSpec]
     slurm: SlurmConfig
 
     # Output configuration
@@ -41,6 +48,7 @@ class BacktestConfig:
 
     def __post_init__(self) -> None:
         """Set derived paths if not provided."""
+        get_constraints(self.constraints)
         if self.output_dir is None:
             self.output_dir = f"{self.project_root}/weights/{self.signal_name}/{self.gamma}"
         if self.logs_dir is None:
@@ -59,13 +67,14 @@ class BacktestConfig:
 
     def to_yaml(self, path: str | Path) -> None:
         """Save configuration to a YAML file."""
+        constraint_specs = json.loads(serialize_constraints(self.constraints))
         data = {
             "signal_name": self.signal_name,
             "data_path": self.data_path,
             "gamma": self.gamma,
             "project_root": self.project_root,
             "byu_email": self.byu_email,
-            "constraints": self.constraints,
+            "constraints": constraint_specs,
             "slurm": {
                 "n_cpus": self.slurm.n_cpus,
                 "mem": self.slurm.mem,
@@ -87,7 +96,6 @@ class BacktestDynamicConfig:
     # Required fields
     signal_name: str
     data_path: str
-    initial_gamma: float
     target_active_risk: float
     active_weights: bool
 
@@ -96,7 +104,7 @@ class BacktestDynamicConfig:
     byu_email: str
 
     # Optional with defaults
-    constraints: list[str]
+    constraints: list[ConstraintSpec]
     slurm: SlurmConfig
 
     # Output configuration
@@ -105,6 +113,7 @@ class BacktestDynamicConfig:
 
     def __post_init__(self) -> None:
         """Set derived paths if not provided."""
+        get_constraints(self.constraints)
         if self.output_dir is None:
             self.output_dir = f"{self.project_root}/weights/{self.signal_name}/{self.target_active_risk}"
         if self.logs_dir is None:
@@ -123,15 +132,15 @@ class BacktestDynamicConfig:
 
     def to_yaml(self, path: str | Path) -> None:
         """Save configuration to a YAML file."""
+        constraint_specs = json.loads(serialize_constraints(self.constraints))
         data = {
             "signal_name": self.signal_name,
             "data_path": self.data_path,
-            "initial_gamma": self.initial_gamma,
             "target_active_risk": self.target_active_risk,
             "active_weights": self.active_weights,
             "project_root": self.project_root,
             "byu_email": self.byu_email,
-            "constraints": self.constraints,
+            "constraints": constraint_specs,
             "slurm": {
                 "n_cpus": self.slurm.n_cpus,
                 "mem": self.slurm.mem,

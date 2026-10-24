@@ -3,18 +3,29 @@
 
 signal_name: momentum
 data_path: /path/to/project/temp/alphas.parquet
-initial_gamma: 50
 target_active_risk: 0.05
-active_weights: True
+active_weights: true
 
 # Required: your project setup
 project_root: /path/to/project
 byu_email: your.email@byu.edu
 
-# Optimization constraints
+# Explicit benchmark-relative, long-only mandate. No mandate is implicit.
+# Empty [] leaves only the risk cap and permits net exposure and short positions.
 constraints:
-  - ZeroBeta
   - ZeroInvestment
+  - LongOnly
+  - ZeroBeta
+
+# For an active extension, replace the list above with:
+# constraints:
+#   - ZeroInvestment
+#   - name: GrossLeverage
+#     max_leverage: 1.6
+# With benchmark weights summing to 1, this allows up to 130% long / 30% short.
+# A name-only GrossLeverage defaults to 1.0; limits must be finite and positive.
+# When benchmark_weight is absent, the worker loads and aligns the benchmark.
+# Provide an explicit zero benchmark_weight column for standalone long-short research.
 
 # SLURM configuration (all optional with defaults)
 slurm:

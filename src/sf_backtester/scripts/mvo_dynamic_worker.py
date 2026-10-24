@@ -7,17 +7,22 @@ import argparse
 import datetime as dt
 
 import polars as pl
+import sf_quant.data as sfd
 import sf_quant.backtester as sfb
-from sf_backtester.scripts.utils import get_constraints
+from sf_backtester.constraints import (
+    ConstraintSpec,
+    add_constraint_arguments,
+    constraints_from_arguments,
+    get_constraints,
+)
 
 
 def run_backtest_by_year(
     df: pl.LazyFrame,
-    initial_gamma: float,
     year: int,
     output_dir: str,
     n_cpus: int,
-    constraints: list[str],
+    constraints: list[ConstraintSpec],
     active_weights: bool,
     target_active_risk: float,
 ) -> None:
@@ -25,14 +30,14 @@ def run_backtest_by_year(
 
     Args:
         df: LazyFrame containing the data.
-        initial_gamma: Risk aversion parameter.
         year: Year to process.
         output_dir: Directory to write output.
         n_cpus: Number of CPUs for parallel execution.
-        constraints: List of constraint names.
+        constraints: Constraint names or named parameter mappings.
         active_weights: Active weights flag.
         target_active_risk: Target active risk.
     """
+    constraint_objects = get_constraints(constraints)
     year_start = dt.date(year, 1, 1)
     year_end = dt.date(year, 12, 31)
 
@@ -41,14 +46,25 @@ def run_backtest_by_year(
         .collect()
     )
 
-    print(f"Processing year {year}: {len(filtered)} rows")
+    if "benchmark_weight" not in filtered.columns:
+        benchmark_weights = (
+            sfd.load_benchmark(start=year_start, end=year_end)
+            .select(
+                "date",
+                "barrid",
+                pl.col("weight").alias("benchmark_weight"),
+            )
+        )
+        filtered = (
+            filtered.join(benchmark_weights, on=["date", "barrid"], how="left")
+            .with_columns(pl.col("benchmark_weight").fill_null(0.0))
+        )
 
-    constraint_objects = get_constraints(constraints)
+    print(f"Processing year {year}: {len(filtered)} rows")
 
     weights = sfb.dynamic_backtest_parallel(
         data=filtered,
         constraints=constraint_objects,
-        initial_gamma=initial_gamma,
         target_active_risk=target_active_risk,
         active_weights=active_weights,
         n_cpus=n_cpus,
@@ -69,12 +85,6 @@ def main() -> None:
         "--data_path",
         required=True,
         help="Path to parquet file containing the data.",
-    )
-    parser.add_argument(
-        "--initial_gamma",
-        type=float,
-        required=True,
-        help="Risk aversion parameter for MVO.",
     )
     parser.add_argument(
         "--target_active_risk",
@@ -105,26 +115,21 @@ def main() -> None:
         required=True,
         help="Number of CPUs for parallel execution.",
     )
-    parser.add_argument(
-        "--constraints",
-        nargs="+",
-        required=True,
-        help="List of constraint names (e.g., ZeroBeta ZeroInvestment).",
-    )
+    add_constraint_arguments(parser)
 
     args = parser.parse_args()
+    constraints = constraints_from_arguments(args, parser)
 
     df = pl.scan_parquet(args.data_path)
 
     run_backtest_by_year(
         df=df,
-        initial_gamma=args.initial_gamma,
         year=args.year,
         output_dir=args.output_dir,
         n_cpus=args.n_cpus,
-        constraints=args.constraints,
+        constraints=constraints,
         active_weights=args.active_weights,
-        target_active_risk=args.target_active_risk
+        target_active_risk=args.target_active_risk,
     )
 
 
