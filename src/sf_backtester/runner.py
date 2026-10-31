@@ -2,12 +2,16 @@
 
 import os
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import polars as pl
 
 from sf_backtester.config import BacktestConfig, BacktestDynamicConfig
 from sf_backtester.constraints import get_constraints
 from sf_backtester.slurm import generate_sbatch_script, generate_sbatch_script_dynamic, submit_job
+
+if TYPE_CHECKING:
+    from sf_backtester.execution import Submission
 
 
 class BacktestRunner:
@@ -91,7 +95,7 @@ class BacktestRunner:
         self,
         data: pl.DataFrame | None = None,
         dry_run: bool = False,
-    ) -> None:
+    ) -> "Submission | None":
         """Submit the backtest job to SLURM.
 
         Args:
@@ -101,11 +105,18 @@ class BacktestRunner:
         # Revalidate mutable configuration before any preparation or submission.
         get_constraints(self.config.constraints)
         # Prepare directories and optionally save data
-        self.prepare(data)
+        if self.config.execution is None:
+            self.prepare(data)
 
         # Load data to determine years
         df = self.load_data(data)
         years = self.get_years(df)
+
+        if self.config.execution is not None:
+            from sf_backtester.execution import submit_integrated
+            return submit_integrated(self.config, df, years, dynamic=False, dry_run=dry_run)
+        if not years:
+            raise ValueError("Cannot submit an empty backtest")
 
         print(f"Preparing backtest for {len(years)} years: {years[0]}-{years[-1]}")
         print(f"Signal: {self.config.signal_name}")
@@ -166,12 +177,19 @@ class BacktestDynamicRunner:
         self,
         data: pl.DataFrame | None = None,
         dry_run: bool = False,
-    ) -> None:
+    ) -> "Submission | None":
         get_constraints(self.config.constraints)
-        self.prepare(data)
+        if self.config.execution is None:
+            self.prepare(data)
 
         df = self.load_data(data)
         years = self.get_years(df)
+
+        if self.config.execution is not None:
+            from sf_backtester.execution import submit_integrated
+            return submit_integrated(self.config, df, years, dynamic=True, dry_run=dry_run)
+        if not years:
+            raise ValueError("Cannot submit an empty backtest")
 
         print(f"Preparing dynamic backtest for {len(years)} years: {years[0]}-{years[-1]}")
         print(f"Signal: {self.config.signal_name}")

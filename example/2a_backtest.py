@@ -1,4 +1,5 @@
-from sf_backtester import BacktestConfig, BacktestRunner, SlurmConfig
+from sf_backtester import BacktestConfig, BacktestRunner, SlurmConfig, ExecutionConfig
+from sf_quant.simulation import SimulationConfig
 
 slurm_config = SlurmConfig(
     n_cpus=8,
@@ -12,6 +13,7 @@ backtest_config = BacktestConfig(
     signal_name='momentum',
     data_path='momentum_alphas.parquet',
     gamma=50,
+    execution=ExecutionConfig(simulation=SimulationConfig(weight_type="active", allow_short=True)),
     project_root="/home/amh1124/Projects/sf-backtester",
     byu_email="amh1124@byu.edu",
     constraints=[

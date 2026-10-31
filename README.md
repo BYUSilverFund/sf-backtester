@@ -237,3 +237,5 @@ git tag v*.*.*
 git push --tags
 ```
 
+
+Drift-aware execution and output migration: see [DRIFT_AWARE.md](DRIFT_AWARE.md).

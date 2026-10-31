@@ -38,6 +38,7 @@ def generate_sbatch_script(config: BacktestConfig, years: list[int]) -> str:
 #SBATCH --mail-user={config.byu_email}
 #SBATCH --mail-type={config.slurm.mail_type}
 
+set -euo pipefail
 export RAY_ACCEL_ENV_VAR_OVERRIDE_ON_ZERO=0
 
 DATA_PATH={shlex.quote(config.data_path)}
@@ -97,6 +98,7 @@ def generate_sbatch_script_dynamic(config: BacktestDynamicConfig, years: list[in
 #SBATCH --mail-user={config.byu_email}
 #SBATCH --mail-type={config.slurm.mail_type}
 
+set -euo pipefail
 export RAY_ACCEL_ENV_VAR_OVERRIDE_ON_ZERO=0
 
 DATA_PATH={shlex.quote(config.data_path)}
@@ -132,7 +134,7 @@ srun python {shlex.quote(str(worker_script))} \\
     return script
 
 
-def submit_job(script_content: str, dry_run: bool = False) -> subprocess.CompletedProcess | None:
+def submit_job(script_content: str, dry_run: bool = False, dependency: str | None = None) -> subprocess.CompletedProcess | None:
     """Submit a SLURM job from script content.
 
     Args:
@@ -156,7 +158,7 @@ def submit_job(script_content: str, dry_run: bool = False) -> subprocess.Complet
 
     try:
         result = subprocess.run(
-            ["sbatch", script_path],
+            ["sbatch", "--parsable", *([f"--dependency=afterok:{dependency}"] if dependency else []), script_path],
             capture_output=True,
             text=True,
             check=True,

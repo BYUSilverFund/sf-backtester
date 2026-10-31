@@ -1,11 +1,12 @@
 """Configuration management for sf-backtester."""
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, field
 import json
 from pathlib import Path
 from typing import Self
 
 import yaml
+from sf_backtester.execution import ExecutionConfig
 
 from sf_backtester.constraints import (
     ConstraintSpec,
@@ -45,10 +46,13 @@ class BacktestConfig:
     # Output configuration
     output_dir: str | None = None
     logs_dir: str | None = None
+    execution: ExecutionConfig | None = field(default_factory=ExecutionConfig)
 
     def __post_init__(self) -> None:
         """Set derived paths if not provided."""
         get_constraints(self.constraints)
+        if isinstance(self.execution, dict):
+            self.execution = ExecutionConfig(**self.execution)
         if self.output_dir is None:
             self.output_dir = f"{self.project_root}/weights/{self.signal_name}/{self.gamma}"
         if self.logs_dir is None:
@@ -84,6 +88,7 @@ class BacktestConfig:
             },
             "output_dir": self.output_dir,
             "logs_dir": self.logs_dir,
+            "execution": asdict(self.execution) if self.execution else None,
         }
         with open(path, "w") as f:
             yaml.dump(data, f, default_flow_style=False, sort_keys=False)
@@ -110,10 +115,13 @@ class BacktestDynamicConfig:
     # Output configuration
     output_dir: str | None = None
     logs_dir: str | None = None
+    execution: ExecutionConfig | None = field(default_factory=ExecutionConfig)
 
     def __post_init__(self) -> None:
         """Set derived paths if not provided."""
         get_constraints(self.constraints)
+        if isinstance(self.execution, dict):
+            self.execution = ExecutionConfig(**self.execution)
         if self.output_dir is None:
             self.output_dir = f"{self.project_root}/weights/{self.signal_name}/{self.target_active_risk}"
         if self.logs_dir is None:
@@ -150,6 +158,7 @@ class BacktestDynamicConfig:
             },
             "output_dir": self.output_dir,
             "logs_dir": self.logs_dir,
+            "execution": asdict(self.execution) if self.execution else None,
         }
         with open(path, "w") as f:
             yaml.dump(data, f, default_flow_style=False, sort_keys=False)

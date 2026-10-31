@@ -3,6 +3,7 @@
 This script is executed by each SLURM array task to process a single year.
 """
 
+from pathlib import Path
 import argparse
 import datetime as dt
 
@@ -53,7 +54,9 @@ def run_backtest_by_year(
     )
 
     output_path = f"{output_dir}/{year}.parquet"
-    weights.write_parquet(output_path)
+    temporary = Path(output_path).with_suffix(".tmp.parquet")
+    weights.write_parquet(temporary)
+    temporary.replace(output_path)
     print(f"Wrote weights to {output_path}")
 
 

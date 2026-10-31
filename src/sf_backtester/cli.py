@@ -1,13 +1,35 @@
 """Command-line interface for sf-backtester."""
 
+import json
+from pathlib import Path
+
 import click
 
+from sf_backtester.execution import Submission, finalize_run
 from sf_backtester.runner import BacktestDynamicRunner, BacktestRunner
 
 
 @click.group()
 def main() -> None:
     """sf-backtester: Multi-node parallelized backtesting tool."""
+
+
+@main.command()
+@click.argument("run_dir", type=click.Path(exists=True))
+def status(run_dir: str) -> None:
+    """Show completion/failure, plus live scheduler state when sacct is available."""
+    path = Path(run_dir) / "submission.json"
+    jobs = json.loads(path.read_text()) if path.exists() else {}
+    submission = Submission(jobs.get("optimization_job_id"), jobs.get("simulation_job_id"), run_dir)
+    click.echo(json.dumps(submission.status(), indent=2))
+
+
+@main.command()
+@click.argument("run_dir", type=click.Path(exists=True))
+def finalize(run_dir: str) -> None:
+    """Retry simulation of a failed run after all annual targets have completed."""
+    finalize_run(Path(run_dir) / "manifest.json")
+    click.echo("Simulation complete")
 
 
 @main.command()
