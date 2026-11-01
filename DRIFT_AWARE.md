@@ -82,7 +82,9 @@ recovery finalize explicitly if the original dependency became unsatisfiable.
 Do not edit the immutable input or merge targets from unrelated runs.
 
 For explicit optimization-only compatibility set `execution=None` / YAML
-`execution: null`. Legacy target-return APIs remain available separately.
+`execution: null`. The old weighted-return function names are removed. Research reports must use
+`sf_quant.simulation.simulate_portfolio` and its realized return outputs. Only
+explicitly named `legacy_` arithmetic remains for historical reproduction.
 
 Local, database-free entry points:
 
